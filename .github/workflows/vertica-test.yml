@@ -12,18 +12,37 @@ jobs:
     strategy:
       matrix:
         python-version: [ '3.8','3.9' ,'3.10', '3.11']
-    services:
-      vertica:
-        image: mkottakota419/vertica-ci:latest
-        ports:
-          - 5433:5433
-          - 5444:5444
-        env:
-          VERTICA_DB_NAME: docker
-          VMART_ETL_SCRIPT: ''
-          VMART_ETL_SQL: ''
     steps:
     - uses: actions/checkout@v3
+    - name: Set up Vertica server (Private Image)
+      timeout-minutes: 15
+      run: |
+        set -e
+        docker run -d -p 5433:5433 -p 5444:5444 \
+          --add-host=host.docker.internal:host-gateway \
+          --name vertica_docker \
+          mkottakota419/vertica-ci:latest
+
+        echo "Preparing system environment..."
+        # 1. Install tools. 
+        # 2. Try to link, but don't fail if it's already there (|| true).
+        # 3. Verify the path exists so we can see it in the logs.
+        docker exec -u root vertica_docker bash -c "
+          dnf install -y iproute procps-ng && \
+          ln -sf /usr/sbin/ip /sbin/ip || true && \
+          ls -l /sbin/ip" || (echo "Failed to prepare system environment" && exit 1)
+        
+        echo "Cleaning stale files..."
+        docker exec -u root vertica_docker bash -c "rm -rf /catalog/* /data/*" || (echo "Failed to clean stale files" && exit 1)
+        
+        echo "Creating Vertica Database (mydb) ..."
+        docker exec -u dbadmin vertica_docker admintools -t create_db \
+          -s localhost \
+          -d mydb || (echo "Failed to create Vertica database" && exit 1)
+        
+        echo "Vertica database is up"
+        docker exec -u dbadmin vertica_docker vsql -c "SELECT version();" || (echo "Failed to connect to Vertica database" && exit 1)
+        echo "Vertica is ready"
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
