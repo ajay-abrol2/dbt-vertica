@@ -14,7 +14,7 @@ jobs:
         python-version: [ '3.8','3.9' ,'3.10', '3.11']
     services:
       vertica:
-        image: vertica/vertica-ce:latest
+        image: ghcr.io/ratiopbc/vertica-ce:latest
         ports:
           - 5433:5433
           - 5444:5444
