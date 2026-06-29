@@ -71,11 +71,7 @@ jobs:
     - name: Test DBT Clone
       run: python -m pytest tests/functional/adapter/dbt_clone/
     - name: Test Seeds
-      run: python -m pytest tests/functional/adapter/seeds/test_seeds.py
-
-
-
-      
+      run: python -m pytest tests/functional/adapter/seeds/test_seeds.py     
 
 
 
