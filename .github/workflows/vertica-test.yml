@@ -27,7 +27,6 @@ jobs:
           /opt/vertica/bin/admintools -t create_db
           -s localhost
           -d docker
-          -p password
           --force &&
           tail -f /dev/null"
     steps:
