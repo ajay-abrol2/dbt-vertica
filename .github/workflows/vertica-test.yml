@@ -145,7 +145,7 @@ jobs:
           annotations:
             vertica.com/k-safety: "0"
         spec:
-          image: opentext/vertica-k8s:24.1.0-0
+          image: opentext/vertica-k8s:23.4.0-0
           dbName: vdb
           initPolicy: Create
           communal:
