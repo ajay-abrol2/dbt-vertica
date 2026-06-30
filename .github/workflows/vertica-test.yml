@@ -12,16 +12,6 @@ jobs:
     strategy:
       matrix:
         python-version: [ '3.8','3.9' ,'3.10', '3.11']
-    services:
-      vertica:
-        image: ghcr.io/ratiopbc/vertica-ce:latest
-        ports:
-          - 5433:5433
-          - 5444:5444
-        env:
-          VERTICA_DB_NAME: docker
-          VMART_ETL_SCRIPT: ''
-          VMART_ETL_SQL: ''
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
