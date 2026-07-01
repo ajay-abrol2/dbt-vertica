@@ -270,28 +270,29 @@ jobs:
     - name: Install
       run: python setup.py install
     
-    - name: Run dbt-vertica functional tests
+    - name: Run pytest in Kubernetes
       run: |
+        echo "NS=$NS"
+
         kubectl run pytest-runner \
           --image=python:3.11 \
           --restart=Never \
-          -n $NS \
+          -n "$NS" \
           -- sleep infinity
 
         kubectl wait \
-          --for=condition=Ready pod/pytest-runner \
-          -n $NS \
+          --for=condition=Ready \
+          pod/pytest-runner \
+          -n "$NS" \
           --timeout=120s
 
-        kubectl cp . $NS/pytest-runner:/workspace
+        kubectl cp . "$NS"/pytest-runner:/workspace
 
-        kubectl exec -n $NS pytest-runner -- bash -c "
+        kubectl exec -n "$NS" pytest-runner -- bash -c '
           cd /workspace &&
-          pip install -r requirements.txt &&
-          pip install -e . &&
           python -m pytest tests/functional/adapter/test_basic.py -v
-        "
-                                 
+        '
+                             
     - name: Test Constraints
       run: python -m pytest tests/functional/adapter/constraints/test_constraints.py
     - name: Test Incremental
