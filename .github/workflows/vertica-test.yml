@@ -282,7 +282,6 @@ jobs:
         VERTICA_PORT: 5433
       run: |
         python -m pytest tests/functional/adapter/test_basic.py
-
     - name: Test Constraints
       run: python -m pytest tests/functional/adapter/constraints/test_constraints.py
     - name: Test Incremental
