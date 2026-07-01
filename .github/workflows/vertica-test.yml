@@ -38,6 +38,7 @@ jobs:
         kubectl create secret generic vertica-license \
           --from-file=license.dat \
           --dry-run=client -o yaml | kubectl apply -f -
+        kubectl get secret vertica-license -n my-verticadb-operator
       
     - name: Add Helm repositories
       run: |
