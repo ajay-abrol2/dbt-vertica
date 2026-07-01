@@ -216,6 +216,7 @@ jobs:
         NS=my-verticadb-operator
         SS=verticadb-sample-defaultsubcluster
         POD=${SS}-0
+        kubectl get secret vertica-license -n my-verticadb-operator
         for i in {1..30}; do
           kubectl get pod ${POD} -n ${NS} && break || sleep 10
         done
