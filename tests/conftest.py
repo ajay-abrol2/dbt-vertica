@@ -40,7 +40,7 @@ def dbt_profile_target():
     return {
          'type': 'vertica',
         'threads': 1,
-        'host': 'verticadb-sample-defaultsubcluster.my-verticadb-operator.svc.cluster.local',
+        'host': 'localhost',
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
@@ -102,7 +102,7 @@ def vertica_target():
     return {
        'type': 'vertica',
         'threads': 1,
-        'host': 'verticadb-sample-defaultsubcluster.my-verticadb-operator.svc.cluster.local',
+        'host': 'localhost',
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
