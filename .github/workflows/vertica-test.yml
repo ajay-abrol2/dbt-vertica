@@ -143,8 +143,7 @@ jobs:
 
     - name: Deploy VerticaDB and per-node Services
       run: |
-        cat <<'EOF' | kubectl apply -f - /
-        --set licenseSecret=vertica-license
+        cat <<'EOF' | kubectl apply -f - 
         apiVersion: vertica.com/v1
         kind: VerticaDB
         metadata:
@@ -154,6 +153,7 @@ jobs:
             vertica.com/k-safety: "0"
         spec:
           image: opentext/vertica-k8s:latest
+          licenseSecret: vertica-license
           dbName: vdb
           initPolicy: Create
           communal:
