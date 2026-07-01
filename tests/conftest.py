@@ -24,14 +24,6 @@ def pytest_addoption(parser):
     parser.addoption("--profile", action="store", default="vertica", type=str)
 
 
-def get_vertica_host():
-    with open("/etc/hosts") as f:
-        for line in f:
-            if "verticadb-sample-defaultsubcluster" in line:
-                return line.split()[0]
-    raise RuntimeError("Vertica host not found in /etc/hosts")
-
-
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
@@ -49,7 +41,7 @@ def dbt_profile_target():
     return {
          'type': 'vertica',
         'threads': 1,
-        'host': get_vertica_host(),
+        'host': verticadb-sample,
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
@@ -111,7 +103,7 @@ def vertica_target():
     return {
        'type': 'vertica',
         'threads': 1,
-        'host': get_vertica_host(),
+        'host': verticadb-sample,
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
