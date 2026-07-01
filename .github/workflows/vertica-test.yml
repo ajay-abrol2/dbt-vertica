@@ -270,7 +270,10 @@ jobs:
     - name: Install
       run: python setup.py install
     - name: Test Basic
-      run: python -m pytest tests/functional/adapter/test_basic.py
+      run:
+        kubectl port-forward svc/verticadb-sample 5433:5433 -n $NS &
+        sleep 10
+        python -m pytest tests/functional/adapter/test_basic.py
     - name: Test Constraints
       run: python -m pytest tests/functional/adapter/constraints/test_constraints.py
     - name: Test Incremental
