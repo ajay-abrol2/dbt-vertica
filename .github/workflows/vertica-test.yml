@@ -269,19 +269,29 @@ jobs:
       run: pip install -r requirements.txt
     - name: Install
       run: python setup.py install
-    - name: Port-forward Vertica
+    
+    - name: Run dbt-vertica functional tests
       run: |
-        kubectl port-forward svc/verticadb-sample 5433:5433 -n "$NS" > portforward.log 2>&1 &
-        sleep 15
-    - name: Verify connectivity
-      run: |
-        nc -vz localhost 5433
-    - name: Run dbt tests
-      env:
-        VERTICA_HOST: localhost
-        VERTICA_PORT: 5433
-      run: |
-        python -m pytest tests/functional/adapter/test_basic.py
+        kubectl run pytest-runner \
+          --image=python:3.11 \
+          --restart=Never \
+          -n $NS \
+          -- sleep infinity
+
+        kubectl wait \
+          --for=condition=Ready pod/pytest-runner \
+          -n $NS \
+          --timeout=120s
+
+        kubectl cp . $NS/pytest-runner:/workspace
+
+        kubectl exec -n $NS pytest-runner -- bash -c "
+          cd /workspace &&
+          pip install -r requirements.txt &&
+          pip install -e . &&
+          python -m pytest tests/functional/adapter/test_basic.py -v
+        "
+                                 
     - name: Test Constraints
       run: python -m pytest tests/functional/adapter/constraints/test_constraints.py
     - name: Test Incremental
