@@ -46,8 +46,7 @@ def dbt_profile_target():
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
-        'port': 5433,
-        
+        'port': 5433,        
     }
 
 
