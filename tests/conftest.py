@@ -43,7 +43,7 @@ def dbt_profile_target():
          'type': 'vertica',
         'threads': 1,
         'host': 'localhost',
-        'username': 'dbadmin',
+        'username': 'verticadb-sample-defaultsubcluster-0',
         'password': '',
         'database': 'vdb',
         'port': 5433,        
@@ -104,7 +104,7 @@ def vertica_target():
     return {
        'type': 'vertica',
         'threads': 1,
-        'host': 'localhost',
+        'host': 'verticadb-sample-defaultsubcluster-0',
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
