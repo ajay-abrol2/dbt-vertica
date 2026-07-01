@@ -31,7 +31,14 @@ jobs:
       uses: azure/setup-helm@v3
       with:
         version: "3.11.3"
-
+    - name: Create Vertica license secret
+      run: |
+        echo "${{ secrets.VERTICA_LICENSE }}" > license.dat
+ 
+        kubectl create secret generic vertica-license \
+          --from-file=license.dat \
+          --dry-run=client -o yaml | kubectl apply -f -
+      
     - name: Add Helm repositories
       run: |
         helm repo add vertica-charts https://vertica.github.io/charts
