@@ -126,16 +126,23 @@ jobs:
         kubectl wait --for=condition=Ready pod/mc-client -n minio --timeout=60s || true
         kubectl logs mc-client -n minio
         kubectl delete pod mc-client -n minio --ignore-not-found
-
+    
     - name: Create MinIO Secret
       run: |
-        kubectl create ns my-verticadb-operator
-        kubectl delete secret communal-creds -n my-verticadb-operator --ignore-not-found
+        kubectl create ns my-verticadb-operator \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+        kubectl delete secret communal-creds \
+          -n my-verticadb-operator \
+          --ignore-not-found
+
         kubectl create secret generic communal-creds \
           -n my-verticadb-operator \
-          --from-literal=accesskey="minioadmin" \
-          --from-literal=secretkey="minioadmin"
-        kubectl get secret communal-creds -n my-verticadb-operator -o yaml || true
+          --from-literal=accesskey=minioadmin \
+          --from-literal=secretkey=minioadmin
+
+        kubectl get secret communal-creds \
+          -n my-verticadb-operator -o yaml
 
     # ---------------------------
     # Vertica Operator + DB Deployment
