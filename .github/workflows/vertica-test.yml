@@ -31,14 +31,21 @@ jobs:
       uses: azure/setup-helm@v3
       with:
         version: "3.11.3"
+    
     - name: Create Vertica license secret
       run: |
         echo "${{ secrets.VERTICA_LICENSE }}" > license.dat
+
         kubectl create ns my-verticadb-operator --dry-run=client -o yaml | kubectl apply -f -
+
         kubectl create secret generic vertica-license \
+          -n my-verticadb-operator \
           --from-file=license.dat \
           --dry-run=client -o yaml | kubectl apply -f -
+
         kubectl get secret vertica-license -n my-verticadb-operator
+
+    
       
     - name: Add Helm repositories
       run: |
