@@ -45,7 +45,7 @@ def dbt_profile_target():
         'host': 'localhost',
         'username': 'dbadmin',
         'password': '',
-        'database': 'docker',
+        'database': 'vdb',
         'port': 5433,
         
     }
@@ -108,7 +108,7 @@ def vertica_target():
         'host': 'localhost',
         'username': 'dbadmin',
         'password': '',
-        'database': 'docker',
+        'database': 'vdb',
         'port': 5433,
     }
 
