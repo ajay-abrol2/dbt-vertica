@@ -40,7 +40,7 @@ def dbt_profile_target():
     return {
          'type': 'vertica',
         'threads': 1,
-        'host': 'localhost',
+        'host': 'verticadb-sample',
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
@@ -102,7 +102,7 @@ def vertica_target():
     return {
        'type': 'vertica',
         'threads': 1,
-        'host': 'localhost',
+        'host': 'verticadb-sample',
         'username': 'dbadmin',
         'password': '',
         'database': 'vdb',
