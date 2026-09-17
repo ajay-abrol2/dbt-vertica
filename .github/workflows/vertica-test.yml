@@ -161,19 +161,10 @@ jobs:
             - name: AWS_DEFAULT_REGION
               value: "us-east-1"
         EOF
-        helm upgrade --install vdb-op \
-        vertica-charts/verticadb-operator \
-        -n my-verticadb-operator \
-        -f operator-values.yaml
-         
+        
+        helm upgrade --install vdb-op vertica-charts/verticadb-operator -n my-verticadb-operator -f operator-values.yaml
         kubectl get pods -n my-verticadb-operator
-         
-        kubectl wait \
-        --for=condition=Available \
-        deployment \
-        --all \
-        -n my-verticadb-operator \
-        --timeout=300s
+        kubectl wait --for=condition=Available deployment --all -n my-verticadb-operator --timeout=300s
         
     - name: Deploy VerticaDB and per-node Services
       run: |
