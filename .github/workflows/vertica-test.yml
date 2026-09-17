@@ -298,21 +298,20 @@ jobs:
       run: python setup.py install
     - name: Verify Vertica Login
       run: |
-        kubectl exec -n my-verticadb-operator test-runner -- bash -c '
-        pip install vertica-python
-
-        python - <<EOF
+        kubectl exec -n my-verticadb-operator test-runner -- python - <<EOF
         import vertica_python
 
         conn = vertica_python.connect(
           host="verticadb-sample",
           port=5433,
           user="dbadmin",
-          password="Vertica@123")
-          print("SUCCESS")
-          conn.close()
+          password="Vertica@123",
+          database="vdb"
+        )
+
+        print("SUCCESS")
+        conn.close()
         EOF
-        '
     - name: Run pytest in Kubernetes
       env:
         NS: my-verticadb-operator
