@@ -58,7 +58,8 @@ jobs:
     # ---------------------------
     - name: Install MinIO
       run: |
-        kubectl create ns minio
+        kubectl create ns minio --dry-run=client -o yaml | kubectl apply -f -
+
         cat <<'EOF' > minio.yaml
         apiVersion: apps/v1
         kind: Deployment
@@ -77,21 +78,33 @@ jobs:
             spec:
               containers:
                 - name: minio
-                  image: minio/minio:latest
-                  args: ["server", "/data"]
+                  image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
+                  args:
+                - server
+                    - /data
+                    - --console-address
+                    - ":9001"
                   env:
                     - name: MINIO_ROOT_USER
-                      value: "minioadmin"
+                      value: minioadmin
                     - name: MINIO_ROOT_PASSWORD
-                      value: "minioadmin"
+                      value: minioadmin
                   ports:
                     - containerPort: 9000
-                  volumeMounts:
-                    - name: data
-                      mountPath: /data
+                    - containerPort: 9001
+                  readinessProbe:
+                    httpGet:
+                      path: /minio/health/ready
+                      port: 9000
+                    initialDelaySeconds: 20
+                    periodSeconds: 5
+                  resources:
+                    requests:
+                      memory: 256Mi
+                      cpu: 100m
               volumes:
-                - name: data
-                  emptyDir: {}
+              - name: data
+                emptyDir: {}
         ---
         apiVersion: v1
         kind: Service
@@ -102,30 +115,24 @@ jobs:
           selector:
             app: minio
           ports:
-            - port: 9000
-              targetPort: 9000
+          - port: 9000
+            targetPort: 9000
         EOF
-        kubectl apply -f minio.yaml
-        kubectl -n minio rollout status deployment/minio --timeout=2m
-        kubectl get pods -n minio -o wide || true
-        kubectl get svc -n minio || true
-    
-    - name: Ensure MinIO bucket exists
-      run: |
-        kubectl run mc-client \
-          --restart=Never \
-          --image=minio/mc:latest \
-          -n minio \
-          --command -- \
-          sh -c "
-            mc alias set localminio http://minio.minio.svc.cluster.local:9000 minioadmin minioadmin &&
-            mc mb --ignore-existing localminio/vertica-fleeting &&
-            mc ls localminio
-          "
 
-        kubectl wait --for=condition=Ready pod/mc-client -n minio --timeout=60s || true
-        kubectl logs mc-client -n minio
-        kubectl delete pod mc-client -n minio --ignore-not-found
+        kubectl apply -f minio.yaml
+
+        kubectl rollout status deployment/minio -n minio --timeout=5m || true
+
+        echo "=== PODS ==="
+        kubectl get pods -n minio -o wide
+
+        echo "=== DESCRIBE ==="
+        kubectl describe pods -n minio
+
+        echo "=== LOGS ==="
+        kubectl logs deployment/minio -n minio --all-containers=true || true
+
+        kubectl rollout status deployment/minio -n minio --timeout=5m
     
     - name: Create MinIO Secret
       run: |
