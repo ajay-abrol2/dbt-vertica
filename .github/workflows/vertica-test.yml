@@ -78,11 +78,7 @@ jobs:
               containers:
                 - name: minio
                   image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
-                  args:
-                - server
-                    - /data
-                    - --console-address
-                    - ":9001"
+                  args: ["server", "/data", "--console-address", ":9001"]
                   env:
                     - name: MINIO_ROOT_USER
                       value: minioadmin
