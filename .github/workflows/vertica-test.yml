@@ -134,7 +134,7 @@ jobs:
       run: |
         kubectl run mc-client \
           --restart=Never \
-          --image=minio/mc:latest \
+          --image=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z \
           -n minio \
           --command -- \
           sh -c "
