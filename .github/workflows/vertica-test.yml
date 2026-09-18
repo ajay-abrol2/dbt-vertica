@@ -297,6 +297,8 @@ jobs:
     - name: Install
       run: python setup.py install
     - name: Verify Vertica Login
+      env:
+        VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
       run: |
         kubectl exec -n my-verticadb-operator test-runner -- python - <<EOF
         import vertica_python
