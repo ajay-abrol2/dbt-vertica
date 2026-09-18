@@ -42,7 +42,7 @@ def dbt_profile_target():
         'threads': 1,
         'host': 'verticadb-sample',
         'username': 'dbadmin',
-        'password': os.getenv('VERTICA_PASSWORD', ''),
+        'password': os.getenv('VERTICA_PASSWORD', 'Vertica@123'),
         'database': 'vdb',
         'port': 5433,        
     }
