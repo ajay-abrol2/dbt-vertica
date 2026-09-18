@@ -308,7 +308,6 @@ jobs:
         VERTICA_PORT: "5433"
       run: |
         python -c "import os; print('VERTICA_PASSWORD available:', bool(os.getenv('VERTICA_PASSWORD')))"
-        pytest -s --profile vertica  
     - name: Verify Vertica Login
       env:
         VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
