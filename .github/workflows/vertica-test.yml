@@ -185,6 +185,7 @@ jobs:
       env:
         VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
       run: |
+        export VERTICA_PASSWORD="${{ secrets.VERTICA_PASSWORD }}"
         kubectl create secret generic vertica-password \
           -n my-verticadb-operator \
           --from-literal=password=${{ secrets.VERTICA_PASSWORD }} \
