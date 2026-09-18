@@ -7,11 +7,11 @@
 
 #    http://www.apache.org/licenses/LICENSE-2.0
 
-# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
 
 import pytest
 import os
@@ -78,7 +78,7 @@ def vertica_target():
         'threads': 1,
         'host': os.getenv('VERTICA_HOST', 'verticadb-sample'),
         'username': os.getenv('VERTICA_USER', 'dbadmin'),
-        'password': os.getenv('VERTICA_PASSWORD'),
+        'password': os.getenv('VERTICA_PASSWORD', 'Vertica@123'),
         'database': os.getenv('VERTICA_DATABASE', 'vdb'),
         'port': int(os.getenv('VERTICA_PORT', '5433')),
     }
