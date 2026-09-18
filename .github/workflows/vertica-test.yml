@@ -117,19 +117,25 @@ jobs:
 
         kubectl apply -f minio.yaml
 
-        kubectl rollout status deployment/minio -n minio --timeout=5m || true
-
-        echo "=== PODS ==="
-        kubectl get pods -n minio -o wide
-
-        echo "=== DESCRIBE ==="
-        kubectl describe pods -n minio
-
-        echo "=== LOGS ==="
-        kubectl logs deployment/minio -n minio --all-containers=true || true
-
-        kubectl rollout status deployment/minio -n minio --timeout=5m
-        
+        echo "Waiting for MinIO deployment to become ready..."
+        if ! kubectl rollout status deployment/minio -n minio --timeout=5m; then
+            echo "=== MinIO rollout failed. Collecting diagnostics ==="
+            echo "=== PODS ==="
+            kubectl get pods -n minio -o wide || true
+            echo "=== DESCRIBE ==="
+            kubectl describe pods -n minio || true
+            echo "=== LOGS ==="
+            kubectl logs deployment/minio -n minio \
+            --all-containers=true \
+            --tail=200 || true
+            echo "=== EVENTS ==="
+            kubectl get events -n minio \
+            --sort-by='.lastTimestamp' || true
+            echo "MinIO deployment failed to become ready."
+            exit 1
+        fi
+        echo "MinIO deployment is ready."
+               
     - name: Ensure MinIO bucket exists
       run: |
         kubectl run mc-client \
