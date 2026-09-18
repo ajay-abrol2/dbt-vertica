@@ -185,7 +185,7 @@ jobs:
       run: |
         kubectl create secret generic vertica-password \
           -n my-verticadb-operator \
-          --from-literal=password=${{ secrets.VERTICA_PASSWORD }} \
+          --from-literal=password=Vertica@123 \
           --dry-run=client -o yaml | kubectl apply -f -
           
     - name: Deploy VerticaDB and per-node Services
@@ -305,7 +305,7 @@ jobs:
           host="verticadb-sample",
           port=5433,
           user="dbadmin",
-          password="${{ secrets.VERTICA_PASSWORD }}",
+          password="Vertica@123",
           database="vdb"
         )
 
