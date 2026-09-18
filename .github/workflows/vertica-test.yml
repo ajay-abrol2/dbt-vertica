@@ -182,6 +182,8 @@ jobs:
         kubectl get pods -n my-verticadb-operator
         kubectl wait --for=condition=Available deployment --all -n my-verticadb-operator --timeout=300s
     - name: Create Vertica Password Secret
+      env:
+        VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
       run: |
         kubectl create secret generic vertica-password \
           -n my-verticadb-operator \
