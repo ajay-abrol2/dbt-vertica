@@ -45,8 +45,6 @@ jobs:
           --dry-run=client -o yaml | kubectl apply -f -
 
         kubectl get secret vertica-license -n my-verticadb-operator
-
-    
       
     - name: Add Helm repositories
       run: |
@@ -119,18 +117,23 @@ jobs:
 
         echo "Waiting for MinIO deployment to become ready..."
         if ! kubectl rollout status deployment/minio -n minio --timeout=5m; then
+            
             echo "=== MinIO rollout failed. Collecting diagnostics ==="
             echo "=== PODS ==="
             kubectl get pods -n minio -o wide || true
+            
             echo "=== DESCRIBE ==="
             kubectl describe pods -n minio || true
+            
             echo "=== LOGS ==="
             kubectl logs deployment/minio -n minio \
             --all-containers=true \
             --tail=200 || true
+            
             echo "=== EVENTS ==="
             kubectl get events -n minio \
             --sort-by='.lastTimestamp' || true
+            
             echo "MinIO deployment failed to become ready."
             exit 1
         fi
@@ -191,7 +194,6 @@ jobs:
       env:
         VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
       run: |
-        export VERTICA_PASSWORD="${{ secrets.VERTICA_PASSWORD }}"
         kubectl create secret generic vertica-password \
           -n my-verticadb-operator \
           --from-literal=password=${{ secrets.VERTICA_PASSWORD }} \
@@ -305,18 +307,7 @@ jobs:
       run: pip install -r requirements.txt
     - name: Install
       run: python setup.py install
-    - name: Run dbt Vertica tests
-      env:
-        VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
-        VERTICA_HOST: verticadb-sample
-        VERTICA_USER: dbadmin
-        VERTICA_DATABASE: vdb
-        VERTICA_PORT: "5433"
-      run: |
-        python -c "import os; print('VERTICA_PASSWORD available:', bool(os.getenv('VERTICA_PASSWORD')))"
     - name: Verify Vertica Login
-      env:
-        VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
       run: |
         kubectl exec -n my-verticadb-operator test-runner -- python - <<EOF
         import vertica_python
