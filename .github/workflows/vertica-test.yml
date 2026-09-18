@@ -299,6 +299,16 @@ jobs:
       run: pip install -r requirements.txt
     - name: Install
       run: python setup.py install
+    - name: Run dbt Vertica tests
+      env:
+        VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
+        VERTICA_HOST: verticadb-sample
+        VERTICA_USER: dbadmin
+        VERTICA_DATABASE: vdb
+        VERTICA_PORT: "5433"
+      run: |
+        python -c "import os; print('VERTICA_PASSWORD available:', bool(os.getenv('VERTICA_PASSWORD')))"
+        pytest -s --profile vertica  
     - name: Verify Vertica Login
       env:
         VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
