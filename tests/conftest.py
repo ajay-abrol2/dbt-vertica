@@ -78,7 +78,7 @@ def vertica_target():
         'threads': 1,
         'host': os.getenv('VERTICA_HOST', 'verticadb-sample'),
         'username': os.getenv('VERTICA_USER', 'dbadmin'),
-        'password': os.getenv('VERTICA_PASSWORD', ''),
+        'password': os.getenv('VERTICA_PASSWORD', 'Vertica@123'),
         'database': os.getenv('VERTICA_DATABASE', 'vdb'),
         'port': int(os.getenv('VERTICA_PORT', '5433')),
     }
