@@ -142,11 +142,11 @@ jobs:
             exit 1
         fi
         echo "MinIO deployment is ready."    
-    - name: Ensure MinIO bucket exists
+     - name: Ensure MinIO bucket exists
       run: |
         kubectl run mc-client \
           --restart=Never \
-          --image=minio/mc:latest \
+          --image=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z \
           -n minio \
           --command -- \
           sh -c "
@@ -158,7 +158,6 @@ jobs:
         kubectl wait --for=condition=Ready pod/mc-client -n minio --timeout=60s || true
         kubectl logs mc-client -n minio
         kubectl delete pod mc-client -n minio --ignore-not-found
-    
     - name: Create MinIO Secret
       run: |
         kubectl create ns my-verticadb-operator \
@@ -172,6 +171,9 @@ jobs:
           -n my-verticadb-operator \
           --from-literal=accesskey=minioadmin \
           --from-literal=secretkey=minioadmin
+
+        kubectl get secret communal-creds \
+          -n my-verticadb-operator -o yaml
 
         kubectl get secret communal-creds \
           -n my-verticadb-operator -o yaml
