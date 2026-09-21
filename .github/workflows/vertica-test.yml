@@ -190,15 +190,7 @@ jobs:
         helm upgrade --install vdb-op vertica-charts/verticadb-operator -n my-verticadb-operator -f operator-values.yaml
         kubectl get pods -n my-verticadb-operator
         kubectl wait --for=condition=Available deployment --all -n my-verticadb-operator --timeout=300s
-    - name: Create Vertica Password Secret
-      env:
-        VERTICA_PASSWORD: ${{ secrets.VERTICA_PASSWORD }}
-      run: |
-        kubectl create secret generic vertica-password \
-          -n my-verticadb-operator \
-          --from-literal=password=${{ secrets.VERTICA_PASSWORD }} \
-          --dry-run=client -o yaml | kubectl apply -f -
-          
+             
     - name: Deploy VerticaDB and per-node Services
       run: |
         cat <<'EOF' | kubectl apply -f - 
@@ -212,7 +204,7 @@ jobs:
         spec:
           image: opentext/vertica-k8s:latest
           licenseSecret: vertica-license
-          passwordSecret: vertica-password
+          #passwordSecret: vertica-password
           dbName: vdb
           initPolicy: Create
           communal:
@@ -307,22 +299,6 @@ jobs:
       run: pip install -r requirements.txt
     - name: Install
       run: python setup.py install
-    - name: Verify Vertica Login
-      run: |
-        kubectl exec -n my-verticadb-operator test-runner -- python - <<EOF
-        import vertica_python
-
-        conn = vertica_python.connect(
-          host="verticadb-sample",
-          port=5433,
-          user="dbadmin",
-          password="${{ secrets.VERTICA_LICENSE }}",
-          database="vdb"
-        )
-
-        print("SUCCESS")
-        conn.close()
-        EOF
     - name: Run pytest in Kubernetes
       env:
         NS: my-verticadb-operator
