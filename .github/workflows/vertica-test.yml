@@ -51,92 +51,127 @@ jobs:
           helm repo add vertica-charts https://vertica.github.io/charts
           helm repo update
 
+    # ---------------------------
+    # MinIO Setup
+    # ---------------------------
       - name: Install MinIO
-        run: |
-          kubectl create namespace minio --dry-run=client -o yaml | kubectl apply -f -
-          cat <<'EOF' > minio.yaml
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: minio
-            namespace: minio
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: minio
-            template:
-              metadata:
-                labels:
-                  app: minio
-              spec:
-                containers:
-                  - name: minio
-                    image: minio/minio:latest
-                    args: ["server", "/data"]
-                    env:
-                      - name: MINIO_ROOT_USER
-                        value: "minioadmin"
-                      - name: MINIO_ROOT_PASSWORD
-                        value: "minioadmin"
-                    ports:
-                      - containerPort: 9000
-                    readinessProbe:
-                      httpGet:
-                        path: /minio/health/ready
-                        port: 9000
-                      initialDelaySeconds: 10
-                      periodSeconds: 5
-                    volumeMounts:
-                      - name: data
-                        mountPath: /data
-                volumes:
-                  - name: data
-                    emptyDir: {}
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: minio
-            namespace: minio
-          spec:
-            selector:
+      run: |
+        kubectl create ns minio --dry-run=client -o yaml | kubectl apply -f -
+        cat <<'EOF' > minio.yaml
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: minio
+          namespace: minio
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
               app: minio
-            ports:
-              - port: 9000
-                targetPort: 9000
-          EOF
-          kubectl apply -f minio.yaml
-          kubectl rollout status deployment/minio -n minio --timeout=5m
+          template:
+            metadata:
+              labels:
+                app: minio
+            spec:
+              containers:
+                - name: minio
+                  image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
+                  args: ["server", "/data", "--console-address", ":9001"]
+                  env:
+                    - name: MINIO_ROOT_USER
+                      value: minioadmin
+                    - name: MINIO_ROOT_PASSWORD
+                      value: minioadmin
+                  ports:
+                    - containerPort: 9000
+                    - containerPort: 9001
+                  readinessProbe:
+                    httpGet:
+                      path: /minio/health/ready
+                      port: 9000
+                    initialDelaySeconds: 20
+                    periodSeconds: 5
+                  resources:
+                    requests:
+                      memory: 256Mi
+                      cpu: 100m
+              volumes:
+              - name: data
+                emptyDir: {}
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: minio
+          namespace: minio
+        spec:
+          selector:
+            app: minio
+          ports:
+          - port: 9000
+            targetPort: 9000
+        EOF
 
-      - name: Ensure MinIO bucket exists
-        run: |
-          kubectl delete pod mc-client -n minio --ignore-not-found
-          kubectl run mc-client \
-            --restart=Never \
-            --image=minio/mc:latest \
-            -n minio \
-            --command -- \
-            sh -c "mc alias set localminio http://minio.minio.svc.cluster.local:9000 minioadmin minioadmin && mc mb --ignore-existing localminio/vertica-fleeting && mc ls localminio"
+        kubectl apply -f minio.yaml
 
-          if ! kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/mc-client -n minio --timeout=120s; then
-            kubectl describe pod mc-client -n minio || true
-            kubectl logs mc-client -n minio || true
+        echo "Waiting for MinIO deployment to become ready..."
+        if ! kubectl rollout status deployment/minio -n minio --timeout=5m; then
+            
+            echo "=== MinIO rollout failed. Collecting diagnostics ==="
+            echo "=== PODS ==="
+            kubectl get pods -n minio -o wide || true
+            
+            echo "=== DESCRIBE ==="
+            kubectl describe pods -n minio || true
+            
+            echo "=== LOGS ==="
+            kubectl logs deployment/minio -n minio \
+            --all-containers=true \
+            --tail=200 || true
+            
+            echo "=== EVENTS ==="
+            kubectl get events -n minio \
+            --sort-by='.lastTimestamp' || true
+            
+            echo "MinIO deployment failed to become ready."
             exit 1
-          fi
-          kubectl logs mc-client -n minio
-          kubectl delete pod mc-client -n minio --ignore-not-found
-
-      - name: Create MinIO Secret
+        fi
+        echo "MinIO deployment is ready."
+               
+        - name: Ensure MinIO bucket exists
         run: |
-          kubectl create secret generic communal-creds \
-            -n my-verticadb-operator \
-            --from-literal=accesskey=minioadmin \
-            --from-literal=secretkey=minioadmin \
-            --dry-run=client -o yaml | kubectl apply -f -
-          kubectl get secret communal-creds -n my-verticadb-operator
+        kubectl run mc-client \
+          --restart=Never \
+          --image=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z \
+          -n minio \
+          --command -- \
+          sh -c "
+            mc alias set localminio http://minio.minio.svc.cluster.local:9000 minioadmin minioadmin &&
+            mc mb --ignore-existing localminio/vertica-fleeting &&
+            mc ls localminio
+          "
 
-      - name: Install Vertica Operator
+        kubectl wait --for=condition=Ready pod/mc-client -n minio --timeout=60s || true
+        kubectl logs mc-client -n minio
+        kubectl delete pod mc-client -n minio --ignore-not-found
+        - name: Create MinIO Secret
+        run: |
+        kubectl create ns my-verticadb-operator \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+        kubectl delete secret communal-creds \
+          -n my-verticadb-operator \
+          --ignore-not-found
+
+        kubectl create secret generic communal-creds \
+          -n my-verticadb-operator \
+          --from-literal=accesskey=minioadmin \
+          --from-literal=secretkey=minioadmin
+
+        kubectl get secret communal-creds \
+          -n my-verticadb-operator -o yaml
+
+        - name: Install Vertica Operator
         run: |
           cat <<'EOF' > operator-values.yaml
           installCRDs: true
@@ -153,7 +188,7 @@ jobs:
             --wait --timeout 10m
           kubectl -n my-verticadb-operator get pods -o wide
 
-      - name: Create Vertica empty password secret
+        - name: Create Vertica empty password secret
         run: |
           kubectl create secret generic vertica-db-password \
             -n my-verticadb-operator \
@@ -161,7 +196,7 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl get secret vertica-db-password -n my-verticadb-operator
 
-      - name: Deploy VerticaDB and per-node Services
+        - name: Deploy VerticaDB and per-node Services
         run: |
           cat <<'EOF' | kubectl apply -f -
           apiVersion: vertica.com/v1
@@ -226,7 +261,7 @@ jobs:
                 targetPort: 5433
           EOF
 
-      - name: Wait for Vertica readiness
+        - name: Wait for Vertica readiness
         run: |
           NS=my-verticadb-operator
           POD=verticadb-sample-defaultsubcluster-0
@@ -245,27 +280,27 @@ jobs:
             exit 1
           fi
 
-      - name: Install dependencies
+        - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install build twine pip-tools
 
-      - name: Build package
+        - name: Build package
         run: python -m build
 
-      - name: Check
+        - name: Check
         run: python -m twine check dist/*
 
-      - name: Extract reqs
+        - name: Extract reqs
         run: pip-compile -o requirements.txt --extra dev setup.py
 
-      - name: Install reqs
+        - name: Install reqs
         run: python -m pip install -r requirements.txt
 
-      - name: Install
+        - name: Install
         run: python -m pip install -e .
 
-      - name: Run pytest in Kubernetes
+        - name: Run pytest in Kubernetes
         env:
           NS: my-verticadb-operator
           PYTHON_VERSION: ${{ matrix.python-version }}
@@ -307,7 +342,7 @@ jobs:
             python -m pytest tests/functional/adapter/test_persist_docs.py -v
           '
 
-      - name: Collect diagnostics on failure
+        - name: Collect diagnostics on failure
         if: failure()
         run: |
           kubectl get verticadb -n my-verticadb-operator -o wide || true
@@ -317,7 +352,7 @@ jobs:
           kubectl get pods -n minio -o wide || true
           kubectl logs deployment/minio -n minio --tail=200 || true
 
-      - name: Clean up pytest runner
+        - name: Clean up pytest runner
         if: always()
         run: |
           kubectl delete pod pytest-runner -n my-verticadb-operator --ignore-not-found
