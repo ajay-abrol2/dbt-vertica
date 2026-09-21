@@ -14,28 +14,27 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+  steps:
+    - uses: actions/checkout@v3
 
-    steps:
-      - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up Kubernetes (KinD)
-        uses: helm/kind-action@v1.8.0
-        with:
+    - name: Set up Kubernetes (KinD)
+      uses: helm/kind-action@v1.8.0
+      with:
           cluster_name: vertica-ci
           node_image: kindest/node:v1.29.0
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: "3.11.3"
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+      version: "3.11.3"
 
-      - name: Create Vertica namespace and license secret
-        env:
+    - name: Create Vertica namespace and license secret
+      env:
           VERTICA_LICENSE: ${{ secrets.VERTICA_LICENSE }}
         run: |
           kubectl create namespace my-verticadb-operator --dry-run=client -o yaml | kubectl apply -f -
@@ -46,15 +45,15 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl get secret vertica-license -n my-verticadb-operator
 
-      - name: Add Helm repositories
-        run: |
+    - name: Add Helm repositories
+      run: |
           helm repo add vertica-charts https://vertica.github.io/charts
           helm repo update
 
     # ---------------------------
     # MinIO Setup
     # ---------------------------
-      - name: Install MinIO
+    - name: Install MinIO
       run: |
         kubectl create ns minio --dry-run=client -o yaml | kubectl apply -f -
         cat <<'EOF' > minio.yaml
