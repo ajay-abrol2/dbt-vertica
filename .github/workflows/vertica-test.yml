@@ -10,9 +10,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        python-version: [ '3.10', '3.11', '3.12']
+        python-version: [ '3.9' ,'3.10', '3.11', '3.12']
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -45,6 +44,8 @@ jobs:
           --dry-run=client -o yaml | kubectl apply -f -
 
         kubectl get secret vertica-license -n my-verticadb-operator
+
+    
       
     - name: Add Helm repositories
       run: |
@@ -57,7 +58,7 @@ jobs:
     # ---------------------------
     - name: Install MinIO
       run: |
-        kubectl create ns minio --dry-run=client -o yaml | kubectl apply -f -
+        kubectl create ns minio
         cat <<'EOF' > minio.yaml
         apiVersion: apps/v1
         kind: Deployment
@@ -76,29 +77,21 @@ jobs:
             spec:
               containers:
                 - name: minio
-                  image: quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z
-                  args: ["server", "/data", "--console-address", ":9001"]
+                  image: minio/minio:latest
+                  args: ["server", "/data"]
                   env:
                     - name: MINIO_ROOT_USER
-                      value: minioadmin
+                      value: "minioadmin"
                     - name: MINIO_ROOT_PASSWORD
-                      value: minioadmin
+                      value: "minioadmin"
                   ports:
                     - containerPort: 9000
-                    - containerPort: 9001
-                  readinessProbe:
-                    httpGet:
-                      path: /minio/health/ready
-                      port: 9000
-                    initialDelaySeconds: 20
-                    periodSeconds: 5
-                  resources:
-                    requests:
-                      memory: 256Mi
-                      cpu: 100m
+                  volumeMounts:
+                    - name: data
+                      mountPath: /data
               volumes:
-              - name: data
-                emptyDir: {}
+                - name: data
+                  emptyDir: {}
         ---
         apiVersion: v1
         kind: Service
@@ -109,41 +102,19 @@ jobs:
           selector:
             app: minio
           ports:
-          - port: 9000
-            targetPort: 9000
+            - port: 9000
+              targetPort: 9000
         EOF
-
         kubectl apply -f minio.yaml
-
-        echo "Waiting for MinIO deployment to become ready..."
-        if ! kubectl rollout status deployment/minio -n minio --timeout=5m; then
-            
-            echo "=== MinIO rollout failed. Collecting diagnostics ==="
-            echo "=== PODS ==="
-            kubectl get pods -n minio -o wide || true
-            
-            echo "=== DESCRIBE ==="
-            kubectl describe pods -n minio || true
-            
-            echo "=== LOGS ==="
-            kubectl logs deployment/minio -n minio \
-            --all-containers=true \
-            --tail=200 || true
-            
-            echo "=== EVENTS ==="
-            kubectl get events -n minio \
-            --sort-by='.lastTimestamp' || true
-            
-            echo "MinIO deployment failed to become ready."
-            exit 1
-        fi
-        echo "MinIO deployment is ready."
-               
+        kubectl -n minio rollout status deployment/minio --timeout=2m
+        kubectl get pods -n minio -o wide || true
+        kubectl get svc -n minio || true
+    
     - name: Ensure MinIO bucket exists
       run: |
         kubectl run mc-client \
           --restart=Never \
-          --image=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z \
+          --image=minio/mc:latest \
           -n minio \
           --command -- \
           sh -c "
@@ -155,6 +126,7 @@ jobs:
         kubectl wait --for=condition=Ready pod/mc-client -n minio --timeout=60s || true
         kubectl logs mc-client -n minio
         kubectl delete pod mc-client -n minio --ignore-not-found
+    
     - name: Create MinIO Secret
       run: |
         kubectl create ns my-verticadb-operator \
@@ -186,11 +158,10 @@ jobs:
             - name: AWS_DEFAULT_REGION
               value: "us-east-1"
         EOF
-        
-        helm upgrade --install vdb-op vertica-charts/verticadb-operator -n my-verticadb-operator -f operator-values.yaml
-        kubectl get pods -n my-verticadb-operator
-        kubectl wait --for=condition=Available deployment --all -n my-verticadb-operator --timeout=300s
-             
+        helm upgrade --install vdb-op vertica-charts/verticadb-operator \
+          -n my-verticadb-operator -f operator-values.yaml --wait --timeout 10m
+        kubectl -n my-verticadb-operator get pods -o wide || true
+
     - name: Deploy VerticaDB and per-node Services
       run: |
         cat <<'EOF' | kubectl apply -f - 
@@ -204,7 +175,6 @@ jobs:
         spec:
           image: opentext/vertica-k8s:latest
           licenseSecret: vertica-license
-          #passwordSecret: vertica-password
           dbName: vdb
           initPolicy: Create
           communal:
