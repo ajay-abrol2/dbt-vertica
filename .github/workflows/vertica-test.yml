@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.9' ,'3.10', '3.11', '3.12']
+        python-version: [ '3.10', '3.11', '3.12']
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -53,9 +53,6 @@ jobs:
         helm repo add bitnami https://charts.bitnami.com/bitnami || true
         helm repo update
 
-    # ---------------------------
-    # MinIO Setup
-    # ---------------------------
     # ---------------------------
     # MinIO Setup
     # ---------------------------
@@ -141,8 +138,9 @@ jobs:
             echo "MinIO deployment failed to become ready."
             exit 1
         fi
-        echo "MinIO deployment is ready."    
-     - name: Ensure MinIO bucket exists
+        echo "MinIO deployment is ready."
+               
+    - name: Ensure MinIO bucket exists
       run: |
         kubectl run mc-client \
           --restart=Never \
@@ -174,10 +172,6 @@ jobs:
 
         kubectl get secret communal-creds \
           -n my-verticadb-operator -o yaml
-
-        kubectl get secret communal-creds \
-          -n my-verticadb-operator -o yaml
-
     # ---------------------------
     # Vertica Operator + DB Deployment
     # ---------------------------
